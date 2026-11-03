@@ -1,0 +1,80 @@
+# Values for the flyte-binary chart (v2.0.51). Strings go through jsonencode so any value stays valid YAML.
+# The database password is set separately (set_sensitive) and is not part of this file.
+fullnameOverride: flyte
+
+configuration:
+  database:
+    postgres:
+      host: ${jsonencode(database_host)}
+      port: 5432
+      dbname: ${jsonencode(database_name)}
+      username: ${jsonencode(database_username)}
+      # require encrypts the connection but does not verify the server certificate: verify-full would need the RDS
+      # CA bundle mounted into the pod, which the chart cannot do without an extra volume.
+      options: sslmode=require
+  storage:
+    provider: s3
+    metadataContainer: ${jsonencode(bucket)}
+    providerConfig:
+      s3:
+        region: ${jsonencode(region)}
+        authType: iam
+  inline:
+    executor:
+      defaultK8sServiceAccount: ${jsonencode(task_service_account)}
+    plugins:
+      k8s:
+        # GPU tasks tolerate the taint the GPU node group carries (../infra/main.tf).
+        resource-tolerations:
+          nvidia.com/gpu:
+          - key: nvidia.com/gpu
+            operator: Equal
+            value: "true"
+            effect: NoSchedule
+
+flyte-core-components:
+  runs:
+    storagePrefix: ${jsonencode("s3://${bucket}/runs")}
+    identityHeaders:
+      claimsJwtHeader: ${jsonencode(claims_jwt_header)}
+      subjectHeader: ${jsonencode(subject_header)}
+      emailHeader: ${jsonencode(email_header)}
+%{ if oauth ~}
+    # Where the SDK and CLI sign in (runs.authMetadata): Cognito's issuer and the public PKCE client. Cognito
+    # publishes OIDC discovery but not the OAuth authorization-server metadata path Flyte asks for by default, hence
+    # externalMetadataUrl. No audience: Cognito does not take one.
+    authMetadata:
+      externalAuthServerBaseUrl: ${jsonencode(issuer_url)}
+      externalMetadataUrl: .well-known/openid-configuration
+      flyteClient:
+        clientId: ${jsonencode(cli_client_id)}
+        redirectUri: ${jsonencode(cli_redirect_uri)}
+        scopes: [openid, email, profile]
+%{ endif ~}
+  dataproxy:
+    upload:
+      storagePrefix: ${jsonencode("s3://${bucket}/runs/uploads")}
+
+serviceAccount:
+  create: true
+  name: ${jsonencode(backend_service_account)}
+  annotations:
+    eks.amazonaws.com/role-arn: ${jsonencode(backend_role_arn)}
+
+# Pinned by tag and digest (the chart's default is "latest"); the digest rides in the tag.
+console:
+  image:
+    repository: ghcr.io/unionai-oss/flyteconsole-v2
+    tag: ${jsonencode(console_image_tag)}
+%{ if oauth ~}
+  # Sign out through oauth2-proxy, which clears its own cookie; the chart's default would clear AWS ALB cookies.
+  env:
+  - name: OIDC_LOGOUT_URL
+    value: /oauth2/sign_out
+  - name: LOGOUT_CLEAR_COOKIES
+    value: ""
+%{ endif ~}
+
+# The ingress is ours (exposure.tf and tailscale.tf).
+ingress:
+  create: false

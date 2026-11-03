@@ -1,0 +1,71 @@
+{
+  "backend_client_id": "example-backend-client-id",
+  "bucket_name": "test-flyte-data",
+  "cluster_ca_certificate": "ZXhhbXBsZS1jYQ==",
+  "cluster_endpoint": "https://aks.example.com",
+  "cluster_name": "test-flyte",
+  "database_host": "db.example.com",
+  "database_name": "flyte",
+  "database_password": "example-database-password",
+  "database_username": "flyte",
+  "enable_tailscale": true,
+  "exposure": "tailscale",
+  "flyte_config": "\"admin\":\n  \"authType\": \"Passthrough\"\n  \"endpoint\": \"dns:///flyte.example-tailnet.ts.net\"\n  \"insecure\": false\n",
+  "flyte_url": "https://flyte.example-tailnet.ts.net",
+  "gpu_node_pool": {
+    "enabled": false,
+    "max_nodes": 4,
+    "os_disk_size_gb": 200,
+    "vm_size": "Standard_NC4as_T4_v3"
+  },
+  "gpu_node_selector": {
+    "node-pool": "gpu"
+  },
+  "kubeconfig_command": "az aks get-credentials --resource-group test-flyte-rg --name test-flyte && kubelogin convert-kubeconfig -l azurecli",
+  "kubelogin_server_id": "example-server-app",
+  "log_analytics_workspace_id": "/subscriptions/sub/resourceGroups/test-flyte-rg/providers/Microsoft.OperationalInsights/workspaces/test-flyte",
+  "nat_gateway_public_ip": "192.0.2.10",
+  "oauth": {
+    "allowed_email_domains": [],
+    "allowed_emails": []
+  },
+  "oauth_callback_url": null,
+  "oauth_cli_client_id": null,
+  "oauth_cli_redirect_uri": null,
+  "oauth_client_id": null,
+  "oauth_enabled": false,
+  "oauth_issuer_url": null,
+  "oidc_issuer_url": "https://oidc.example.com/test-flyte/",
+  "public": {
+    "acme_email": null,
+    "hostname": null
+  },
+  "region": "test-region",
+  "resource_group_name": "test-flyte-rg",
+  "service_accounts": {
+    "backend": {
+      "name": "flyte-backend",
+      "namespace": "flyte"
+    },
+    "oauth2_proxy": {
+      "name": "oauth2-proxy",
+      "namespace": "oauth2-proxy"
+    },
+    "task": {
+      "name": "flyte-task",
+      "namespace": "flyte"
+    }
+  },
+  "storage_account_name": "testflyteabcd1234",
+  "tailnet_domain": "example-tailnet.ts.net",
+  "tailscale": {
+    "flyte_hostname": "flyte",
+    "mcp_hostname": "flyte-mcp",
+    "oauth_client_id": "example-client-id",
+    "tags": [
+      "tag:k8s"
+    ],
+    "tailnet": "example-tailnet"
+  },
+  "task_client_id": "example-task-client-id"
+}

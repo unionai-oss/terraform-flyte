@@ -1,0 +1,70 @@
+{
+  "account_id": "example-account-id",
+  "backend_role_arn": "arn:aws:iam::example-account-id:role/test-flyte-abcd1234-backend",
+  "bucket_name": "test-flyte-abcd1234",
+  "cluster_ca_certificate": "Y2E=",
+  "cluster_endpoint": "https://eks.example.com",
+  "cluster_name": "test-flyte",
+  "database_host": "db.example.com",
+  "database_name": "flyte",
+  "database_password": "example-database-password",
+  "database_username": "flyte",
+  "enable_tailscale": false,
+  "exposure": "public",
+  "flyte_config": "\"admin\":\n  \"authType\": \"Pkce\"\n  \"endpoint\": \"dns:///flyte.example.com\"\n  \"insecure\": false\n",
+  "flyte_url": "https://flyte.example.com",
+  "gpu_node_pool": {
+    "capacity_type": "ON_DEMAND",
+    "desired_size": 1,
+    "enabled": false,
+    "instance_types": [
+      "g5.xlarge"
+    ],
+    "max_size": 4,
+    "min_size": 0
+  },
+  "gpu_node_selector": {
+    "node-pool": "gpu"
+  },
+  "kubeconfig_command": "aws eks update-kubeconfig --name test-flyte --region us-east-2",
+  "oauth": {
+    "allowed_email_domains": [
+      "example.com"
+    ],
+    "allowed_emails": []
+  },
+  "oauth_callback_url": "https://flyte.example.com/oauth2/callback",
+  "oauth_cli_client_id": "example-cli-client-id",
+  "oauth_cli_redirect_uri": "http://localhost:53593/callback",
+  "oauth_client_id": "example-proxy-client-id",
+  "oauth_client_secret": "example-client-secret",
+  "oauth_enabled": true,
+  "oauth_issuer_url": "https://cognito-idp.us-east-2.amazonaws.com/us-east-2_example",
+  "oidc_provider_arn": "arn:aws:iam::example-account-id:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/EXAMPLE",
+  "public": {
+    "acme_email": "admin@example.com",
+    "hostname": "flyte.example.com"
+  },
+  "region": "us-east-2",
+  "service_accounts": {
+    "backend": {
+      "name": "flyte-backend",
+      "namespace": "flyte"
+    },
+    "task": {
+      "name": "flyte-task",
+      "namespace": "flyte"
+    }
+  },
+  "tailnet_domain": null,
+  "tailscale": {
+    "flyte_hostname": "flyte",
+    "mcp_hostname": "flyte-mcp",
+    "oauth_client_id": null,
+    "tags": [
+      "tag:k8s"
+    ],
+    "tailnet": null
+  },
+  "task_role_arn": "arn:aws:iam::example-account-id:role/test-flyte-abcd1234-task"
+}

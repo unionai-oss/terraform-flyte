@@ -1,0 +1,106 @@
+# Values for the flyte-binary chart (v2.0.51). Strings go through jsonencode so any value stays valid YAML.
+# The database password is set separately (set_sensitive) and is not part of this file.
+fullnameOverride: flyte
+
+configuration:
+  database:
+    # The chart's default pool (100 open connections) is more than the default B_Standard_B1ms server accepts (50,
+    # some of them reserved for Azure). The binary runs every component on one pool, in one pod (Recreate rollout),
+    # so 25 stays well under the limit and leaves room for an admin session.
+    maxOpenConnections: 25
+    maxIdleConnections: 10
+    postgres:
+      host: ${jsonencode(database_host)}
+      port: 5432
+      dbname: ${jsonencode(database_name)}
+      username: ${jsonencode(database_username)}
+      # require encrypts the connection but does not verify the server certificate: verify-full would need the
+      # Azure CA bundle mounted into the pod, which the chart cannot do without an extra volume.
+      options: sslmode=require
+  storage:
+    provider: azure
+    metadataContainer: ${jsonencode(container)}
+    providerConfig:
+      azure:
+        # No key: the chart then configures the stow Azure client without credentials, so it authenticates with the
+        # workload identity the pod carries (the label below and the service account annotation).
+        account: ${jsonencode(storage_account)}
+  inline:
+    executor:
+      defaultK8sServiceAccount: ${jsonencode(task_service_account)}
+    plugins:
+      k8s:
+        # Task pods need the label for the workload identity webhook to inject their federated token.
+        default-labels:
+          azure.workload.identity/use: "true"
+        # Repeats the chart's own default-env-vars (a list in inline configuration replaces the chart's list) and
+        # adds the storage account, which the SDK in the task pod needs to open abfs:// paths.
+        default-env-vars:
+        - _U_EP_OVERRIDE: ${jsonencode("flyte-http.${namespace}:8090")}
+        - _U_INSECURE: "true"
+        - _U_USE_ACTIONS: "1"
+        - AZURE_STORAGE_ACCOUNT_NAME: ${jsonencode(storage_account)}
+        # GPU tasks tolerate the taint the GPU node pool carries (the infra root's main.tf).
+        resource-tolerations:
+          nvidia.com/gpu:
+          - key: nvidia.com/gpu
+            operator: Equal
+            value: "true"
+            effect: NoSchedule
+
+flyte-core-components:
+  runs:
+    # abfs://<container>/<path>: the short form of the Azure Blob scheme that the SDK's storage layer (obstore's
+    # fsspec store, which the SDK registers for abfs) understands and Flyte's Azure examples use; the account comes
+    # from the storage configuration above, not from the URL.
+    storagePrefix: ${jsonencode("abfs://${container}/runs")}
+    identityHeaders:
+      claimsJwtHeader: ${jsonencode(claims_jwt_header)}
+      subjectHeader: ${jsonencode(subject_header)}
+      emailHeader: ${jsonencode(email_header)}
+%{ if oauth ~}
+    # Where the SDK and CLI sign in (runs.authMetadata): the Entra v2.0 issuer and the public PKCE client. Entra
+    # publishes OIDC discovery but not the OAuth authorization-server metadata path Flyte asks for by default, hence
+    # externalMetadataUrl. The ".default" scope asks for an access token whose audience is this app, which is what
+    # oauth2-proxy accepts as a bearer token; offline_access asks for a refresh token, so the SDK can renew the access
+    # token (about an hour) without another browser sign-in.
+    authMetadata:
+      externalAuthServerBaseUrl: ${jsonencode(issuer_url)}
+      externalMetadataUrl: .well-known/openid-configuration
+      flyteClient:
+        clientId: ${jsonencode(cli_client_id)}
+        redirectUri: ${jsonencode(cli_redirect_uri)}
+        scopes: [openid, email, profile, offline_access, ${jsonencode("${cli_client_id}/.default")}]
+%{ endif ~}
+  dataproxy:
+    upload:
+      storagePrefix: ${jsonencode("abfs://${container}/runs/uploads")}
+
+# The pod label for the workload identity webhook, on the Flyte backend pod.
+deployment:
+  podLabels:
+    azure.workload.identity/use: "true"
+
+serviceAccount:
+  create: true
+  name: ${jsonencode(backend_service_account)}
+  annotations:
+    azure.workload.identity/client-id: ${jsonencode(backend_client_id)}
+
+# Pinned by tag and digest (the chart's default is "latest"); the digest rides in the tag.
+console:
+  image:
+    repository: ghcr.io/unionai-oss/flyteconsole-v2
+    tag: ${jsonencode(console_image_tag)}
+%{ if oauth ~}
+  # Sign out through oauth2-proxy, which clears its own cookie.
+  env:
+  - name: OIDC_LOGOUT_URL
+    value: /oauth2/sign_out
+  - name: LOGOUT_CLEAR_COOKIES
+    value: ""
+%{ endif ~}
+
+# The ingress is ours (exposure.tf and tailscale.tf).
+ingress:
+  create: false
