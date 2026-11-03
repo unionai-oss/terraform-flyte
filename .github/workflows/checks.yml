@@ -1,0 +1,20 @@
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: checks.sh
+        env:
+          # tflint --init fetches rulesets from GitHub releases; the token avoids the anonymous rate limit.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./checks.sh
